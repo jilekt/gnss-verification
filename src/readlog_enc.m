@@ -1,6 +1,13 @@
 function dev = readlog_enc(filepath, type, trim)  % VALID #1
 
-M = dlmread(filepath, ' ', 1, 0);
+FIELD_COUNT = 17;
+
+fid = fopen(filepath, 'r');
+M = textscan(fid, repmat('%d', 1, FIELD_COUNT), 'CollectOutput', true, 'Delimiter', ' ', 'MultipleDelimsAsOne', true, 'Headerlines', 1);
+fclose(fid);
+M = M{1};
+
+%M = dlmread(filepath, '  ', 1, 0);
 
 if nargin > 2
     M = M(gettrimmedidx(size(M, 1), trim), :);
@@ -8,6 +15,11 @@ end
 
 switch type
     case 'sp-cepl'
+        % trim data; first and last entry will be master sample (synced with 1 PPS)
+        M(1:(find(M(:, 15) == 0, 1, 'first')-1), :) = [];
+        M((find(M(:, 15) == 0, 1, 'last')+1):end, :) = [];
+
+        % parse items
         dev.sample_id = M(:, 1);  % Sample ID         [-]
         dev.utc_year  = M(:, 2);  % UTC year          [years]
         dev.utc_mon   = M(:, 3);  % UTC month         [months]
@@ -28,8 +40,9 @@ switch type
         dev.setpoint = M(:, 13);  % motor set point [usteps/s]
         dev.meas_id  = M(:, 14);  % measurement ID (has same conditions)
 
-        dev.timerstate  = M(:, 16); % state of internal timer in mcu [ticks], valid only for a master sample
         dev.sample_type = M(:, 15); % sample type [0..master (synced with 1 PPS), 1..slave]
+        dev.timerstate  = M(:, 16); % state of internal timer in mcu [ticks], valid only for a master sample
+        dev.unknown     = M(:, 17); % unknown data
 end
 
 end
