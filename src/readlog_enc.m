@@ -3,7 +3,7 @@ function dev = readlog_enc(filepath, type, trim)  % VALID #1
 FIELD_COUNT = 17;
 
 fid = fopen(filepath, 'r');
-M = textscan(fid, repmat('%d', 1, FIELD_COUNT), 'CollectOutput', true, 'Delimiter', ' ', 'MultipleDelimsAsOne', true, 'Headerlines', 1);
+M = textscan(fid, repmat('%f', 1, FIELD_COUNT), 'CollectOutput', true, 'Delimiter', ' ', 'MultipleDelimsAsOne', true, 'Headerlines', 1);
 fclose(fid);
 M = M{1};
 
@@ -41,8 +41,8 @@ switch type
         dev.meas_id  = M(:, 14);  % measurement ID (has same conditions)
 
         dev.sample_type = M(:, 15); % sample type [0..master (synced with 1 PPS), 1..slave]
-        dev.timerstate  = M(:, 16); % state of internal timer in mcu [ticks], valid only for a master sample
-        dev.unknown     = M(:, 17); % unknown data
+        dev.timer_sync  = M(:, 16); % state of internal timer in mcu [ticks], valid only for a master sample
+        dev.ticks_sync  = M(:, 17); % encoder state when 1-turn signal comes
 end
 
 end
