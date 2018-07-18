@@ -7,18 +7,29 @@ M = textscan(fid, repmat('%f', 1, FIELD_COUNT), 'CollectOutput', true, 'Delimite
 fclose(fid);
 M = M{1};
 
-%M = dlmread(filepath, '  ', 1, 0);
-
 if nargin > 2
     M = M(gettrimmedidx(size(M, 1), trim), :);
 end
 
 switch type
     case 'sp-cepl'
-        % trim data; first and last entry will be master sample (synced with 1 PPS)
+        % remove blocks with corrupted time sync or timing
+        sub_id = M(:, 10);
+        b_idx = [false; diff(sub_id) ~= 1 & diff(sub_id) ~= -50];  % get idx from bad block
+        discard_idx = [];
+        if sum(b_idx) > 0
+            for i = find(b_idx).'
+                discard_idx = [discard_idx, find(sub_id(1:i-1) == 0, 1, 'last') : (i + find(sub_id(i:end) == 0, 1, 'first') - 2)];
+            end
+            
+            M(discard_idx, :) = [];
+            warning('%d blocks with corrupted time sync were discarded!', sum(b_idx))
+        end
+
+        % trim data; first and last need to be master samples (synced with 1 PPS)
         M(1:(find(M(:, 15) == 0, 1, 'first')-1), :) = [];
         M((find(M(:, 15) == 0, 1, 'last')+1):end, :) = [];
-
+       
         % parse items
         dev.sample_id = M(:, 1);  % Sample ID         [-]
         dev.utc_year  = M(:, 2);  % UTC year          [years]
